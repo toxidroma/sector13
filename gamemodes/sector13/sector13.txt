@@ -1,0 +1,6 @@
+"sector13"
+{
+	"title"		"Sector 13"
+	"base"		"base"
+	"menusystem" 	"1"
+}
