@@ -15,3 +15,5 @@ gpm.Import('packages/rp-immersive', true)\Then (pkg) ->
         UPLINK_READY\SendToServer! 
     
 gpm.Import('packages/eclipse-dev', true)
+
+GM.DoPlayerDeath = (ply, attacker, dmg) => ply\CreateRagdoll! unless IsValid ply\GetRagdollEntity!
