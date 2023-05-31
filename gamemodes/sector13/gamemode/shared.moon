@@ -9,7 +9,7 @@ assert istable(gpm), [[
 GM.Config or= {}
 GM.Logger = gpm.logger.Create 'Sector 13', Color 0, 255, 128
 
-gpm.Import('packages/rp-immersive', true)\Then (pkg) -> 
+gpm.Import(gpm.LocatePackage('packages/rp-immersive', 'https://github.com/toxidroma/rp-immersive'), true)\Then (pkg) -> 
     if CLIENT
         import UPLINK_READY from pkg.environment
         UPLINK_READY\SendToServer! 
