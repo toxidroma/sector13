@@ -6,3 +6,6 @@ send = {
     'bots.lua'
     'things.lua'
 }
+gamemodes = {
+    'sector13'
+}

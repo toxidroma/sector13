@@ -5,3 +5,6 @@ version = 0
 send = {
     'postprocessing.lua'
 }
+gamemodes = {
+    'sector13'
+}
