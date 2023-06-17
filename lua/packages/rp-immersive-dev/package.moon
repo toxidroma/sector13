@@ -1,11 +1,12 @@
 export *
-name    = 'eclipse-dev'
-autorun = true
+name    = 'rp-immersive-dev'
+autorun = false
 version = 0
 send = {
     'bots.lua'
     'things.lua'
+    'tweaker.lua'
 }
 gamemodes = {
-    'sector13'
+    'eclipse'
 }

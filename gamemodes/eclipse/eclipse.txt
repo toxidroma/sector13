@@ -1,6 +1,6 @@
-"sector13"
+"eclipse"
 {
-	"title"		"Sector 13"
+	"title"		"eclipse"
 	"base"		"base"
 	"menusystem" 	"1"
 }
