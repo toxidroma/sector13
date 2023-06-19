@@ -28,6 +28,8 @@ class HANDS extends WEAPON
                     ply\Do ACT.THROW, thing 
                 else 
                     ply\Do ACT.PLACE, thing
+            if ply\StateIs STATE.PRIMED
+                return ply\Do ACT.SWING, thing if thing.Attack and thing.Attack.Enabled
             if thing\OnPrimaryInteract tr, ply, @
                 return
             ent\OnActUpon ply, @, thing if IsValid(ent) and ent.OnActUpon

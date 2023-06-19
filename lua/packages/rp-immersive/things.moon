@@ -103,10 +103,12 @@ export class THING extends ENTITY
     OnInteract: =>
     Attack:
         Enabled: true
+        Offset: Vector 0, 0, 0
         Damage: 10
         DamageType: DMG_CLUB
         Delay: .5
-        Range: 50
+        Force: 50
+        Sound: 'Weapon_Crowbar.MeleeHit'
 
     SizeClass: SIZE_TINY
     Mass: 1
@@ -156,7 +158,40 @@ export class THING extends ENTITY
         @RemoveEFlags 61440 if CLIENT and @InWorld! and @IsEFlagSet 61440
         @UpdateTouchList! if SERVER
         --@UpdateVisible!
-    Wait: (t, fn) => timer.Simple t, fn @ if IsValid @
+        holder = @GetHolder!
+        if IsValid(holder) and holder\DoingSomething! and holder.Doing
+            if holder.Doing.swingThatShit and holder.Doing.swinging == @
+                @SwingIt!
+    SwingIt: =>
+        return unless SERVER and @Attack and @Attack.Enabled
+        holder = @GetHolder!
+        return unless IsValid holder
+        --holder\LagCompensation true
+        with tr = TraceHull
+                start: holder\RunClass 'GetHandPosition'
+                endpos: @LocalToWorld @Attack.Offset, Angle!
+                maxs: Vector 6, 6, 6
+                mins: Vector -6, -6, -6
+                filter: {holder, @}
+                mask: MASK_SHOT
+            --debugoverlay.Box .HitPos, Vector(-4, -4, -4), Vector(4, 4, 4)
+            if .Hit and IsValid .Entity
+                holder.Doing.swingThatShit = false 
+                @InflictDamage .Entity, tr
+        --holder\LagCompensation false
+    InflictDamage: (victim, tr) =>
+        return unless SERVER and IsValid victim
+        location = victim\GetHitgroupFromPos(tr.HitPos)
+        @EmitSound @Attack.Sound
+        with damage = DamageInfo!
+            \SetAttacker @GetHolder!
+            \SetInflictor @
+            \SetDamage @Attack.Damage
+            \SetDamageType @Attack.DamageType
+            \SetDamagePosition tr.HitPos
+            \SetReportedPosition tr.StartPos
+            \SetDamageForce @GetHolder!\GetAimVector! * \GetBaseDamage! * @Attack.Force
+            victim\TakeDamageInfo damage
 
     GetHandOffset: => @HandOffset
     AlignToOwner: =>

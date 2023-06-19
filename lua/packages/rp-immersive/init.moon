@@ -243,10 +243,9 @@ class IMMERSIVE extends PLAYER
         pos, ang
     GetTraceFilter: => {@Player, @Player\GetBody!, @Player\Wielding!}
     GetHandPosition: =>
-        index = @Player\LookupAttachment 'anim_attachment_RH'
+        index = @Player\LookupBone 'ValveBiped.Bip01_R_Hand'
         return super! unless index
-        if att = @Player\GetAttachment index
-            att.Pos, att.Ang
+        @Player\GetBonePosition index
 
     --CLIENT
     CalcView: (view) =>
@@ -271,11 +270,11 @@ class IMMERSIVE extends PLAYER
             true
     PreDraw: (ent, flags) =>
         if @Player == LocalPlayer! and @UseDynamicView and (render.IsTrueFirstPerson! or @Player\WaterLevel! >= 2)
-            return if GetConVar'ctp_enabled'\GetBool!
+            return if GetConVar'ctp_enabled' and GetConVar'ctp_enabled'\GetBool!
             ent\AttemptBoneScale bone, Vector! for bone in *{'ValveBiped.Bip01_Head1', 'ValveBiped.Bip01_Neck1'}
     PostDraw: (ent, flags) =>
         if @UseDynamicView
-            return if GetConVar'ctp_enabled'\GetBool!
+            return if GetConVar'ctp_enabled' and GetConVar'ctp_enabled'\GetBool!
             ent\AttemptBoneScale bone, Vector 1, 1, 1 for bone in *{'ValveBiped.Bip01_Head1', 'ValveBiped.Bip01_Neck1'}
     PrePlayerDraw: (flags) =>
         return true if IsValid @Player\GetRagdollEntity!
@@ -338,6 +337,7 @@ with gmod.GetGamemode!
             true
     if SERVER
         .PlayerSpawn = (ply) =>
+            return unless ply\IsBot! or ply\GetNWBool _PKG\GetIdentifier'loaded'
             player_manager.SetPlayerClass(ply, 'player/immersive')
             Run 'PlayerSetModel', ply
             with ply

@@ -1,7 +1,6 @@
 install 'rp-immersive', 'https://github.com/toxidroma/rp-immersive'
 install 'luna', 'https://github.com/toxidroma/luna' if CLIENT
 include'bots.lua'
-THINGS = include'things.lua'
 if CLIENT
     include'tweaker.lua'
     concommand.Add 'tweak', (ply) -> 
@@ -12,5 +11,4 @@ if CLIENT
 
 {
     :Tweaker
-    :THINGS
 }

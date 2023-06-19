@@ -254,3 +254,39 @@ class PUNCH extends ACT
 									phys\ApplyForceOffset(force, tr.HitPos)
 								victim\SetVelocity force
 							@punchedIt = true
+
+class SWING extends ACT
+    new: (@ply, @swinging) => super @ply
+	Immobilizes: false
+	Do: (fromstate) =>
+		with @ply
+			return unless \StanceIs STANCE_RISEN
+			weapon = \Wielding!
+			return unless IsValid(weapon) and weapon.Attack and weapon.Attack.Enabled
+			anim = table.Random {'melee_1h_left', 'melee_1h_right'}
+			snd, cycle1, cycle2 = 'WeaponFrag.Throw', .23, weapon.Attack.Delay
+			@Spasm sequence: anim, SS: true
+			@CYCLE cycle1, =>
+				if IsFirstTimePredicted! and SERVER
+					weapon\EmitSound snd
+				@swingThatShit = true
+			@CYCLE cycle2, => @swingThatShit = nil
+	HitDetector: =>
+		hurts = @swinging\LocalToWorld @swinging.Attack.Offset, Angle!
+		tr = TraceHull
+			start: hurts
+			endpos: hurts + @ply\GetForward! * 10
+			maxs: Vector 4, 4, 4
+			mins: Vector -4, -4, -4
+			filter: {@ply, @swinging}
+			mask: MASK_SHOT
+		tr
+	Think: =>
+		super!
+		if @swingThatShit
+			@ply\LagCompensation true
+			tr = @HitDetector!
+			@ply\LagCompensation false
+			if tr and tr.Hit and IsValid tr.Entity
+				@swingThatShit = false 
+				@swinging\InflictDamage tr.Entity, tr

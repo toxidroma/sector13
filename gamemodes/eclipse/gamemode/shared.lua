@@ -11,12 +11,16 @@ end
 GM.Initialize = function(self) end
 GM.CanProperty = function(self, pl, property, ent) return pl:IsSuperAdmin() end 
 assert(istable(gpm), 'eclipse will not function at all without the gLua Package Manager.\nGet it here: https://github.com/Pika-Software/glua-package-manager')
-gpm.Import('packages/rp-immersive', true):Then(function(pkg)
-  if CLIENT then
-    local UPLINK_READY
-    UPLINK_READY = pkg.Environment.UPLINK_READY
-    return UPLINK_READY:SendToServer()
+
+hook.Add('PackageInstalled', 'welcome', function(pkg)
+  name = pkg:GetName()
+  if name == 'rp-immersive' then
+    if CLIENT then
+      pkg.Environment.UPLINK_READY:SendToServer()
+    end
   end
 end)
+
+gpm.Import('packages/rp-immersive', true)
 gpm.Import('packages/rp-immersive-dev', true)
 gpm.Import('packages/rp-immersive-violence', true)

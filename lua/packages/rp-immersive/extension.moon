@@ -114,3 +114,13 @@ with FindMetaTable 'Entity'
     .AttemptBoneScale = (name, scale, networking) =>
         id = @LookupBone name
         @ManipulateBoneScale id, scale, networking if id
+    --thanks teslacloud
+    .GetHitgroupFromPos = (pos) =>
+        for i=0,@GetHitBoxGroupCount!-1
+            for k=0,@GetHitBoxCount(i)-1
+                mins, maxs = @GetHitBoxBounds k, i
+                bone = @GetBonePosition @GetHitBoxBone k, i
+                mins += bone
+                maxs += bone
+                return k if pos\WithinAABox mins, maxs
+        return HITGROUP_GENERIC
