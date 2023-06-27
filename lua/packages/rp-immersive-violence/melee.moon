@@ -1,19 +1,28 @@
-class PipeBeatdown extends SOUND
-    sound: "eclipse/weapons/metallic_beatdown#{i}.wav" for i=1,5
+import Holdtypes from install 'packages/rp-immersive'
 
+hook.Add 'PreLoadAnimations', 'sequence harvest', ->
+    IncludeModel mdl for mdl in *{
+        'models/dysphoria/anims/zps_surv.mdl'
+    }
+    
 class Pipe extends THING
     Model: Model 'models/props_canal/mattpipe.mdl'
+    Animations: 
+        attack: Holdtypes.swinging
+        prime: Holdtypes.something
+        throw: Holdtypes.throwing
     HandOffset:
-        Pos: Vector 3, -1.5, -10
-        Ang: Angle!
+        Pos: Vector 0, 0, 8
+        Ang: Angle 0, 0, 180
     Attack:
         Enabled: true
-        Offset: Vector 3, 0, -13
+        Offset: Vector 0, 0, -16
         Damage: 23
         DamageType: DMG_CLUB
-        Delay: .666
+        Delay: {.19, .62}
         Force: 50
-        Sound: 'PipeBeatdown'
+        ImpactSound: 'Weapon_Melee_Blunt.Impact_Heavy'
+        WhooshSound: 'Weapon_Melee.PipeLeadLight'
 
 {
     :Pipe

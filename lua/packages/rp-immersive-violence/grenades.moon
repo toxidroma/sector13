@@ -1,4 +1,4 @@
-import THING from install 'rp-immersive', 'https://github.com/toxidroma/rp-immersive'
+import THING from install 'packages/rp-immersive'
 class PinPull extends SOUND
     sound: 'snd_jack_pinpull.wav'
 
