@@ -1,3 +1,4 @@
 rp-immersive.zip
 *.lua
 lua/packages/**/*.lua
+lua/packages/rp-immersive/init.lua
