@@ -43,8 +43,9 @@ class
         len2d = vel\Length2D!
         with ply
             .CalcSeqOverride = \FindSequence animset.idle
-            if (len2d > \ClassTable!.WalkSpeed / math.sqrt(2) - 8) and ply\KeyDown IN_SPEED
-                .CalcSeqOverride = \FindSequence animset.run
+            rSpeed = \ClassTable!.RunSpeed
+            if (len2d > rSpeed / 2)
+                .CalcSeqOverride = \FindSequence (len2d > rSpeed / math.sqrt(2) and animset.sprint or animset.run)
             elseif len2d > 0.5
                 .CalcSeqOverride = \FindSequence animset.walk
     Jumped:				(ply) =>
