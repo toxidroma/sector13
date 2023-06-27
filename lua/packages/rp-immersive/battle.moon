@@ -5,7 +5,7 @@ import TraceHull, GetSurfaceData from util
 class SHOVE extends ACT
 	Do: (fromstate) =>
 		with @ply
-			return unless \StanceIs STANCE_RISEN
+			return if \GetFallen!
 			anim, snd, cycle1, cycle2, @bones = "range_melee_shove_1hand", nil, .15, .33, {'ValveBiped.Bip01_L_Hand'}
 			if fromstate == STATE.PRIMED
 				anim, snd = "gesture_push", "dysphoria/battle/push.wav"
@@ -176,7 +176,7 @@ class PUNCH extends ACT
 	Immobilizes: false
 	Do: (fromstate) =>
 		with @ply
-			return unless \StanceIs STANCE_RISEN
+			return if \GetFallen!
 			anim = table.Random {'gesture_punch_l', 'gesture_punch_r'}
 			snd, cycle1, cycle2 = 'WeaponFrag.Throw', .13, .32
 			@fist = if anim == 'gesture_punch_l' then -1 else 1
@@ -260,33 +260,23 @@ class SWING extends ACT
 	Immobilizes: false
 	Do: (fromstate) =>
 		with @ply
-			return unless \StanceIs STANCE_RISEN
+			return if \GetFallen!
 			weapon = \Wielding!
 			return unless IsValid(weapon) and weapon.Attack and weapon.Attack.Enabled
-			anim = table.Random {'melee_1h_left', 'melee_1h_right'}
-			snd, cycle1, cycle2 = 'WeaponFrag.Throw', .23, weapon.Attack.Delay
-			@Spasm sequence: anim, SS: true
-			@CYCLE cycle1, =>
-				if IsFirstTimePredicted! and SERVER
-					weapon\EmitSound snd
-				@swingThatShit = true
-			@CYCLE cycle2, => @swingThatShit = nil
-	HitDetector: =>
-		hurts = @swinging\LocalToWorld @swinging.Attack.Offset, Angle!
-		tr = TraceHull
-			start: hurts
-			endpos: hurts + @ply\GetForward! * 10
-			maxs: Vector 4, 4, 4
-			mins: Vector -4, -4, -4
-			filter: {@ply, @swinging}
-			mask: MASK_SHOT
-		tr
+			anim = table.Random {
+				'melee_1h_left'
+				'melee_1h_right'
+				'melee_1h_stab'
+				'melee_1h_overhead'
+			}
+			snd, cycle1, cycle2 = weapon.Attack.WhooshSound or 'WeaponFrag.Throw', weapon.Attack.Delay[1], weapon.Attack.Delay[2]
+			if SERVER
+				@Spasm sequence: anim, speed: 1, SS: true
+				@CYCLE cycle1, =>
+					if IsFirstTimePredicted! and SERVER
+						weapon\EmitSound snd
+					@swingThatShit = true
+				@CYCLE cycle2, => @swingThatShit = nil
 	Think: =>
 		super!
-		if @swingThatShit
-			@ply\LagCompensation true
-			tr = @HitDetector!
-			@ply\LagCompensation false
-			if tr and tr.Hit and IsValid tr.Entity
-				@swingThatShit = false 
-				@swinging\InflictDamage tr.Entity, tr
+		@ply\Wielding!\SwingIt! if @swingThatShit

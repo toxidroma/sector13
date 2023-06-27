@@ -1,3 +1,6 @@
+import TraceLine, IsInWorld from util
+import sort, insert from table
+
 with table
     .FlipKeyValues = (tbl) -> {v,k for k,v in pairs tbl}
 
@@ -114,13 +117,56 @@ with FindMetaTable 'Entity'
     .AttemptBoneScale = (name, scale, networking) =>
         id = @LookupBone name
         @ManipulateBoneScale id, scale, networking if id
-    --thanks teslacloud
-    .GetHitgroupFromPos = (pos) =>
-        for i=0,@GetHitBoxGroupCount!-1
-            for k=0,@GetHitBoxCount(i)-1
-                mins, maxs = @GetHitBoxBounds k, i
-                bone = @GetBonePosition @GetHitBoxBone k, i
-                mins += bone
-                maxs += bone
-                return k if pos\WithinAABox mins, maxs
-        return HITGROUP_GENERIC
+    bone2Hitgroup =
+        'ValveBiped.Bip01_R_Clavicle':   HITGROUP_HEAD
+        'ValveBiped.Bip01_L_Clavicle':   HITGROUP_HEAD
+        'ValveBiped.Bip01_R_UpperArm':   HITGROUP_RIGHTARM
+        'ValveBiped.Bip01_R_Forearm':    HITGROUP_RIGHTARM
+        'ValveBiped.Bip01_L_UpperArm':   HITGROUP_LEFTARM
+        'ValveBiped.Bip01_L_Forearm':    HITGROUP_LEFTARM
+        'ValveBiped.Bip01_R_Thigh':      HITGROUP_RIGHTLEG
+        'ValveBiped.Bip01_R_Calf':       HITGROUP_RIGHTLEG
+        'ValveBiped.Bip01_R_Foot':       HITGROUP_RIGHTLEG
+        'ValveBiped.Bip01_R_Hand':       HITGROUP_RIGHTARM
+        'ValveBiped.Bip01_L_Thigh':      HITGROUP_LEFTLEG
+        'ValveBiped.Bip01_L_Calf':       HITGROUP_LEFTLEG
+        'ValveBiped.Bip01_L_Foot':       HITGROUP_LEFTLEG
+        'ValveBiped.Bip01_L_Hand':       HITGROUP_LEFTARM
+        'ValveBiped.Bip01_Pelvis':       HITGROUP_STOMACH
+        'ValveBiped.Bip01_Spine2':       HITGROUP_CHEST
+        'ValveBiped.Bip01_Spine1':       HITGROUP_CHEST
+        'ValveBiped.Bip01_Head1':        HITGROUP_HEAD
+        'ValveBiped.Bip01_Neck1':        HITGROUP_HEAD
+    .GetHitBone = (pos, minimum) =>
+        closest = {}
+        for boneID, hitgroup in pairs bone2Hitgroup
+            bone = @LookupBone boneID
+            continue unless bone
+            if bonePos = @GetBonePosition bone
+                dist = bonePos\Distance pos
+                if not closest[1] or dist < closest[1]
+                    closest = {dist, bone} if (not minimum) or dist <= minimum
+        closest[2] 
+        --IF NOTHING IS RETURNED THEN THERE WERE NO BONES WITHIN RANGE
+            --NOT SURE WHAT TO RETURN IN THAT CASE JUST YET
+    .FindHitgroup = (pos, minimum) => bone2Hitgroup[@GetBoneName @GetHitBone pos, minimum]
+    .FindEmptySpace = (filter, spacing=32, size=3, height=36, tolerance=5) => --https://github.com/NebulousCloud/helix/blob/master/gamemode/core/sh_util.lua#L905
+        pos = @GetPos!
+        mins = Vector -spacing*.5, -spacing*.5, 0
+        maxs = Vector spacing*.5, spacing*.5, height
+        output = {}
+        for x=-size,size
+            for y=-size,size
+                origin = pos + Vector x*spacing, y*spacing, 0
+                data = 
+                    start: origin + mins + Vector 0, 0, tolerance
+                    endpos: origin + maxs
+                    filter: filter or @
+                trace = TraceLine data
+                data.start = origin + Vector -maxs.x, -maxs.y, tolerance
+                data.endpos = origin + Vector mins.x, mins.y, height
+                trace2 = TraceLine data
+                continue if trace.StartSolid or trace.Hit or trace2.StartSolid or trace2.Hit or not IsInWorld origin
+                insert output, origin
+        sort output, (a, b) -> a\DistToSqr(pos) < b\DistToSqr(pos)
+        output
