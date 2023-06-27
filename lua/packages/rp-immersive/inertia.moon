@@ -61,9 +61,3 @@ hook.Add 'SetupMove', 'inertia', (ply, mv, cmd) ->
         if \GetSpeedLerp! > cls.RunSpeed/1.5 and not (\IsSprinting! and \KeyDown IN_FORWARD)
             mv\SetForwardSpeed \GetSpeedLerp!
     return
-hook.Add 'PlayerStepSoundTime', 'inertia', (ply, type, walking) ->
-    if cls = ply\ClassTable!
-        speed = ply\GetVelocity!\Length!
-        perc = speed / cls.WalkSpeed
-        speed_new = Clamp(660 - (330 * perc * 0.75), 200, 1000)
-        return speed_new
