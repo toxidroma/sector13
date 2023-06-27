@@ -125,7 +125,6 @@ bounds =
         maxs: Vector 12, 12, 32
         Ouch: (hit, ply, speeds) ->
             return unless IsFirstTimePredicted!
-            print speeds
             if speeds >= TUMBLE_OUCH
                 --first make sure we're not tripping on stairs or small steps
                 stepz = ply\GetStepSize!
@@ -141,7 +140,7 @@ bounds =
                 force = (hit.StartPos - hit.HitPos)\GetNormal! * speeds
                 force\Mul -.75
                 force.z = 0
-                ply\EmitSound 'NPC_BaseZombie.Swat'
+                ply\EmitSound 'Body.ImpactMedium'
                 ply\SetSpeedLerp min ply\GetSpeedTarget!, 150
                 crashpct = speeds / TUMBLE_HARD
                 if SERVER
@@ -179,7 +178,13 @@ with FindMetaTable 'Player'
             maxs: bound.maxs
             filter: @RunClass 'GetTraceFilter'
     .FallOver = (dmg) =>
-        rag = @CreateRagdoll! if SERVER
+        if SERVER
+            @CreateRagdoll!
+            with rag = @GetRagdollEntity!
+                if IsValid rag
+                    .GetHitBone = @GetHitBone
+                    .FindHitgroup = @FindHitgroup
+        @SetObserverMode OBS_MODE_NONE if @Alive!
     .StandUp = =>
         rag = @GetRagdollEntity!
         return unless IsValid rag
@@ -196,6 +201,7 @@ with FindMetaTable 'Player'
             @UnSpectate!
 
 hook.Add 'PlayerRagdollCreated', 'hide on ragdoll', (ply, rag) ->
+    ply\Release ply\Wielding!
     ply\SetFallen true
     ply\SetNotSolid true
     ply\SetNoTarget true
@@ -209,7 +215,13 @@ hook.Add 'PlayerRagdollRemoved', 'restore from ragdoll', (ply, rag) ->
     ply\SetNoTarget false
     ply\DrawShadow true
     ply\SetMoveType MOVETYPE_WALK
-    ply\SetPos ply\GetPos! + Vector 0, 0, 16 if ply\IsStuck!
+    if ply\IsStuck!
+        rag\DropToFloor! if IsValid rag
+        ply\SetPos ply\GetPos! + Vector 0, 0, 16 
+        positions = ply\FindEmptySpace {rag, ply}
+        for pos in *positions
+            ply\SetPos pos
+            break unless ply\IsStuck!
     vel = Vector!
     vel = rag\GetVelocity! if IsValid rag
     ply\SetLocalVelocity vel
