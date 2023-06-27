@@ -1,5 +1,7 @@
 gm = gmod.GetGamemode!
-logger = _PKG\GetLogger!
+
+import INFO from install 'packages/rp-immersive-display'
+
 import Create from ents
 import Run from hook
 import random from math
@@ -46,11 +48,18 @@ with FindMetaTable 'Player'
             mins: mins
             maxs: maxs
         tr
-    .Release =  (item) =>
+    .Release = (item) =>
         return unless IsValid item
         item\AlignToOwner!
         tr = @TraceItem item, item\WorldSpaceCenter!
         item\MoveToWorld tr.HitPos, item\GetAngles!
+    .GiveItem = (item) =>
+        return unless SERVER
+        if isstring item
+            with item = ents.Create item
+                \Spawn!
+                \Activate!
+        item\TakenBy @
 
 with FindMetaTable 'Entity'
     .GetInventory = => @GetNWEntity 'ThingInventory'
@@ -94,6 +103,7 @@ export class THING extends ENTITY
         Ang: Angle!
 
     ImpactSound: 'popcan.impacthard'
+    PickupSound: 'PickupThing'
 
     CanInteract: (ply) => 
         if ply\DoingSomething!
@@ -152,37 +162,46 @@ export class THING extends ENTITY
             @GetPhysicsObject!\EnableMotion true
             @PhysWake!
         @UpdateVisible!
+    TakenBy: (ply) => 
+        @EmitSound @PickupSound
+        @MoveTo ply, ply\GetInventory!, SLOT_HAND
 
     Think: =>
         @AlignToOwner! if @InHand!
         @RemoveEFlags 61440 if CLIENT and @InWorld! and @IsEFlagSet 61440
         @UpdateTouchList! if SERVER
         --@UpdateVisible!
-        holder = @GetHolder!
-        if IsValid(holder) and holder\DoingSomething! and holder.Doing
-            if holder.Doing.swingThatShit and holder.Doing.swinging == @
-                @SwingIt!
     SwingIt: =>
-        return unless SERVER and @Attack and @Attack.Enabled
+        return unless @Attack and @Attack.Enabled
         holder = @GetHolder!
         return unless IsValid holder
-        --holder\LagCompensation true
+        holder\LagCompensation true
         with tr = TraceHull
-                start: holder\RunClass 'GetHandPosition'
+                start: holder\RunClass('GetHandPosition').Pos
                 endpos: @LocalToWorld @Attack.Offset, Angle!
-                maxs: Vector 6, 6, 6
-                mins: Vector -6, -6, -6
+                maxs: Vector 2.3, 2.3, 2.3
+                mins: Vector -2.3, -2.3, -2.3
                 filter: {holder, @}
                 mask: MASK_SHOT
-            --debugoverlay.Box .HitPos, Vector(-4, -4, -4), Vector(4, 4, 4)
+            holder\LagCompensation false
+            debugoverlay.SweptBox .StartPos, .HitPos, Vector(-2.3, -2.3, -2.3), Vector(2.3, 2.3, 2.3), @GetAngles!
             if .Hit and IsValid .Entity
                 holder.Doing.swingThatShit = false 
                 @InflictDamage .Entity, tr
-        --holder\LagCompensation false
+        
     InflictDamage: (victim, tr) =>
         return unless SERVER and IsValid victim
-        location = victim\GetHitgroupFromPos(tr.HitPos)
-        @EmitSound @Attack.Sound
+        location = victim\FindHitgroup tr.HitPos
+        --melee weapons like to mistarget the upper arms and legs! OFTEN
+        switch location
+            when HITGROUP_LEFTARM, HITGROUP_RIGHTARM
+                location = table.Random { HITGROUP_CHEST, location, location, HITGROUP_CHEST }
+            when HITGROUP_LEFTLEG, HITGROUP_RIGHTLEG
+                location = table.Random { HITGROUP_STOMACH, location, location, HITGROUP_STOMACH }
+        if IsValid @GetHolder!
+            h2s = {'head', 'chest', 'stomach', 'left arm', 'right arm', 'left leg', 'right leg'}
+            INFO @GetHolder!, h2s[location], tr.HitPos
+        @EmitSound @Attack.ImpactSound if @Attack.ImpactSound
         with damage = DamageInfo!
             \SetAttacker @GetHolder!
             \SetInflictor @
@@ -197,9 +216,9 @@ export class THING extends ENTITY
     AlignToOwner: =>
         holder = @GetHolder!
         return unless IsValid holder
-        pos, ang = holder\RunClass 'GetHandPosition'
+        attach = holder\RunClass 'GetHandPosition'
         offset = @GetHandOffset!
-        pos, ang = LocalToWorld offset.Pos, offset.Ang, pos, ang
+        pos, ang = LocalToWorld offset.Pos, offset.Ang, attach.Pos, attach.Ang
         @SetPos pos
         @SetAngles ang
     GetHolder: =>
@@ -264,15 +283,12 @@ class PICK_UP extends ACT
     Immobilizes: false
     Impossible: => true unless IsValid(@thing) and @thing\GetClass!\StartWith'thing' and @ply\DistanceFrom(@thing) <= 82*1.1
     Do: (fromstate) =>
-        anim, snd, cycle = 'g_lookatthis', 'PickupThing', .23
+        anim, cycle = 'g_lookatthis', .23
         if @ply\EyeAngles!.p >= 45
             anim, cycle = 'pickup_generic_offhand', .5
         @Spasm sequence: anim, SS: true
         @CYCLE cycle, => 
-            if SERVER
-                with @thing
-                    \EmitSound snd
-                    \MoveTo @ply, @ply\GetInventory!, SLOT_HAND
+            @thing\TakenBy @ply if SERVER
             @Kill!
 
 class DROP extends ACT
