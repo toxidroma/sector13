@@ -5,6 +5,8 @@ install 'ipr-base',     'https://github.com/Pika-Software/ipr-base'
 install 'vpunch-vbob',  'https://github.com/toxidroma/vpunch-vbob' if CLIENT
 --install 'satellite'
 
+RunConsoleCommand 'wos_dynabase_mountorder', "Local Player Animations,Cut Fist Reanimations,Vuthakral's Extended Player Animations,Base Animations"
+
 include'extension.lua'
 
 export ACT      = include'act.lua'
@@ -12,7 +14,7 @@ export STATE    = include'state.lua'
 
 import band, bnot from bit
 import Run from hook
-import abs, min, max from math
+import abs, min, max, random from math
 import InQuad from math.ease
 import find from string
 import insert, remove, FlipKeyValues from table
@@ -49,6 +51,17 @@ include'hands.lua'
 
 include'inertia.lua'
 include'misadventure.lua'
+include'footsteps.lua'
+
+with FindMetaTable 'CMoveData'
+    .RemoveKey = (key) =>
+        if @KeyDown key
+            newbuttons = band @GetButtons!, bnot key
+            @SetButtons newbuttons
+    .RemoveKeys = (keys) =>
+        -- Using bitwise operations to clear the key bits.
+        newbuttons = band @GetButtons!, bnot keys
+        @SetButtons newbuttons
 
 with FindMetaTable 'Player'
     .StanceIs = (stance) => @GetStance! == stance
@@ -203,6 +216,13 @@ class IMMERSIVE extends PLAYER
             @Player\SetNW2Entity 'improved-player-ragdolls', NULL
         @Player\UnSpectate!
     Death: => 
+    SetModel: => 
+        mdl = unless @Player\IsBot!
+            "models/player/group01/male_0#{random 1,9}.mdl"
+        else
+            "models/player/corpse1.mdl"
+
+        @Player\SetModel mdl
 
     StartCommand: (cmd) => 
         if @Player\GetBody! != @Player
@@ -213,7 +233,7 @@ class IMMERSIVE extends PLAYER
 
     --SHARED
     StartMove: (mv, cmd) => 
-        mv\SetButtons band mv\GetButtons!, bnot(IN_JUMP + IN_DUCK)
+        mv\RemoveKeys IN_JUMP + IN_DUCK
         return
     FinishMove: (mv) =>
         rag = @Player\GetRagdollEntity!
@@ -233,19 +253,18 @@ class IMMERSIVE extends PLAYER
                 pos, ang = LocalToWorld Vector(5,-5,0), Angle(0,-90,-90), matrix\GetTranslation!, matrix\GetAngles!
                 ang = ent\EyeAngles! unless ent\IsRagdoll!
                 trace = TraceLine
-                    start: @Player\EyePos!
+                    start: ent\EyePos!
                     endpos: pos
                     filter: @GetTraceFilter!
                     mins: Vector -3, -3, -3
                     maxs: Vector 3, 3, 3
                     collisiongroup: COLLISION_GROUP_PLAYER_MOVEMENT
                 pos = trace.HitPos
+                print
         pos, ang
     GetTraceFilter: => {@Player, @Player\GetBody!, @Player\Wielding!}
-    GetHandPosition: =>
-        index = @Player\LookupBone 'ValveBiped.Bip01_R_Hand'
-        return super! unless index
-        @Player\GetBonePosition index
+    GetHandPosition: => @Player\GetAttachment(@Player\LookupAttachment'anim_attachment_RH') or super!
+        
 
     --CLIENT
     CalcView: (view) =>
@@ -271,10 +290,12 @@ class IMMERSIVE extends PLAYER
     PreDraw: (ent, flags) =>
         if @Player == LocalPlayer! and @UseDynamicView and (render.IsTrueFirstPerson! or @Player\WaterLevel! >= 2)
             return if GetConVar'ctp_enabled' and GetConVar'ctp_enabled'\GetBool!
+            return if pace and pace.Active
             ent\AttemptBoneScale bone, Vector! for bone in *{'ValveBiped.Bip01_Head1', 'ValveBiped.Bip01_Neck1'}
     PostDraw: (ent, flags) =>
         if @UseDynamicView
             return if GetConVar'ctp_enabled' and GetConVar'ctp_enabled'\GetBool!
+                return if pace and pace.Active
             ent\AttemptBoneScale bone, Vector 1, 1, 1 for bone in *{'ValveBiped.Bip01_Head1', 'ValveBiped.Bip01_Neck1'}
     PrePlayerDraw: (flags) =>
         return true if IsValid @Player\GetRagdollEntity!
@@ -372,16 +393,6 @@ if CLIENT
             Run 'PlayerDisconnected', ply
         return
 
-with FindMetaTable 'CMoveData'
-    .RemoveKey = (key) =>
-        if @KeyDown key
-            newbuttons = band @GetButtons!, bnot key
-            @SetButtons newbuttons
-    .RemoveKeys = (keys) =>
-        -- Using bitwise operations to clear the key bits.
-        newbuttons = band @GetButtons!, bnot keys
-        @SetButtons newbuttons
-
 hook.Add 'AllowPlayerPickup', tostring(_PKG), (ply, ent) -> false
 
 NO = {
@@ -411,6 +422,8 @@ export class UPLINK_READY extends UPLINK
         ply\SetNWBool _PKG\GetIdentifier'loaded', true
         ply\Spawn!
 
+Holdtypes = include'animtable.lua'
 {
     :THING
+    :Holdtypes
 }
