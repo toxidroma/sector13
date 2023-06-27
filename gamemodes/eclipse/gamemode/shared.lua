@@ -23,4 +23,5 @@ end)
 
 gpm.Import('packages/rp-immersive', true)
 gpm.Import('packages/rp-immersive-dev', true)
+gpm.Import('packages/rp-immersive-anatomy', true)
 gpm.Import('packages/rp-immersive-violence', true)
