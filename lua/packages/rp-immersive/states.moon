@@ -10,7 +10,9 @@ class PRIMED extends STATE
         thing = ply\Wielding!
         super ply, vel, 
             if IsValid(thing)
-                if BIND.CONTROLS['release']\IsDown ply
+                if ply\DoingSomething! and ply.Doing and ply.Doing.__class == ACT.SWING
+                    thing.Animations.attack or thing.Animations.prime
+                elseif BIND.CONTROLS['release']\IsDown ply
                     thing.Animations.throw
                 else
                     thing.Animations.prime
